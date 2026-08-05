@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables / secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model weights / checkpoints (large binaries, fetch separately)
+*.pt
+*.pth
+*.onnx
+*.weights
+*.h5
+*.ckpt
+
+# Training/inference run outputs (ultralytics, etc.)
+runs/
+
+# Datasets and derived data (large, not source-controlled)
+TS_flightobj_plane01/
+scidb_dataset/
+test/dataset_classified/
+test/gray_array/
+test/gray_image/
+test/original/
+*.zip
+experiment_result
