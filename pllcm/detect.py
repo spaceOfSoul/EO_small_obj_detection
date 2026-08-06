@@ -44,11 +44,33 @@ def detect(array: np.ndarray, params: PLLCMParams | None = None) -> list[Detecti
     mask = (e > th_e).astype(np.uint8)
 
     num_labels, _, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+    h, w = e.shape
 
     detections: list[Detection] = []
     for label in range(1, num_labels):  # 라벨 0 = 배경
         x, y, bw, bh, _area = stats[label]
+        # 3단계 크기 제약(PLLCM_SC)은 후보 픽셀 각각의 11x11 윈도우 안에서만 검사되기 때문에,
+        # 서로 떨어진 후보들이 연결요소로 묶이면 그 제약을 우회해 거대한 bbox가 나올 수 있다.
+        # oversized_bbox_mode로 그런 병합 결과를 어떻게 처리할지 고른다 (기본 "off"는 무처리).
+        is_oversized = bw > params.size_max or bh > params.size_max
+
+        if is_oversized and params.oversized_bbox_mode == "discard":
+            continue
+
         region_e = e[y : y + bh, x : x + bw]
+
+        if is_oversized and params.oversized_bbox_mode == "recenter":
+            # 연결요소를 버리는 대신, 그 안에서 가장 강한(E값 최대) 픽셀을 중심으로
+            # size_max x size_max 고정 박스만 남긴다.
+            peak_row, peak_col = np.unravel_index(np.argmax(region_e), region_e.shape)
+            peak_y, peak_x = y + peak_row, x + peak_col
+            half = params.size_max // 2
+            x = max(0, peak_x - half)
+            y = max(0, peak_y - half)
+            bw = min(w, peak_x + half + 1) - x
+            bh = min(h, peak_y + half + 1) - y
+            region_e = e[y : y + bh, x : x + bw]
+
         conf = float(region_e.max() / e_max)
         detections.append((0, float(x), float(y), float(x + bw), float(y + bh), conf))
 

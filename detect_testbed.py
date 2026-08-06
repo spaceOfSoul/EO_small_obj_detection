@@ -179,6 +179,14 @@ if __name__ == "__main__":
     parser.add_argument("--size-min", type=int, default=None, help="3단계 크기 제약 하한(H*W >)")
     parser.add_argument("--size-max", type=int, default=None, help="3단계 크기 제약 상한(H,W <=)")
     parser.add_argument("--lambda-th", type=float, default=None, help="4단계 최종 임계값 가중치")
+    parser.add_argument(
+        "--oversized-bbox-mode",
+        choices=["off", "discard", "recenter"],
+        default=None,
+        help="4단계 연결요소 bbox가 size_max(H,W)를 넘었을 때 처리 방식. 서로 떨어진 후보들이 연결요소로 "
+        "묶여 size_max 제약을 우회한 거대 bbox가 나올 수 있어 만든 옵션. "
+        "off=무처리(기본값), discard=통째로 버림, recenter=최강(E값 최대) 픽셀 중심 size_max 크기 박스만 남김.",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config) if args.config else {}
@@ -194,6 +202,17 @@ if __name__ == "__main__":
     )
 
     scale = resolve(args.scale, config, "scale", 1.0)
+    oversized_bbox_mode = resolve(
+        args.oversized_bbox_mode, config, "oversized_bbox_mode", default_params.oversized_bbox_mode
+    )
+    if oversized_bbox_mode not in ("off", "discard", "recenter"):
+        # yaml에서 off/on/yes/no를 따옴표 없이 쓰면 PyYAML이 불리언으로 해석해버려(YAML 1.1) 여기로
+        # False/True가 들어올 수 있음 - CLI의 choices= 검증을 안 거치는 경로라 여기서 한 번 더 막는다.
+        parser.error(
+            f"oversized_bbox_mode 값이 올바르지 않습니다: {oversized_bbox_mode!r} "
+            "(off/discard/recenter 중 하나여야 함 - yaml에 따옴표 없이 off를 쓰면 불리언으로 해석됨에 주의)"
+        )
+
     cli_params = PLLCMParams(
         k_th=resolve(args.k_th, config, "k_th", default_params.k_th),
         window=resolve(args.window, config, "window", default_params.window),
@@ -201,6 +220,7 @@ if __name__ == "__main__":
         size_min=resolve(args.size_min, config, "size_min", default_params.size_min),
         size_max=resolve(args.size_max, config, "size_max", default_params.size_max),
         lambda_th=resolve(args.lambda_th, config, "lambda_th", default_params.lambda_th),
+        oversized_bbox_mode=oversized_bbox_mode,
     )
 
     run(dataset_dir, output_dir, cli_params, scale)

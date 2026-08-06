@@ -4,7 +4,7 @@
 #   예: python detect_testbed.py --config experiment_config/default.yaml --k-th 6.0
 
 # 필수: neg_array(.npy) 폴더 경로
-dataset_dir: dataset_EO/dataset_classified/data_260806_132457/np_array
+dataset_dir: dataset_EO/dataset_classified/data_260806_154954/np_array
 
 # 결과 저장 경로. 생략하면 experiment_result/Experiment_YYMMDD_HH_MM_SS 로 자동 생성.
 # output_dir: experiment_result/my_run
@@ -13,12 +13,12 @@ dataset_dir: dataset_EO/dataset_classified/data_260806_132457/np_array
 scale: 1.0
 
 # PLLCM 파라미터 (pllcm/params.py의 PLLCMParams 기본값과 동일)
-k_th: 5.2       # 1단계 후보 추출 임계값 계수
-beta: 15.0      # 2단계 RW 엣지 가중치 상수
+k_th: 5.4       # 1단계 후보 추출 임계값 계수
+beta: 13.0      # 2단계 RW 엣지 가중치 상수
 window: 11      # 2단계 RW 로컬 윈도우 크기(홀수)
 size_min: 1     # 3단계 크기 제약 하한 (H*W >)
-size_max: 9     # 3단계 크기 제약 상한 (H, W <=)
-lambda_th: 0.5  # 4단계 최종 임계값 가중치
+size_max: 10     # 3단계 크기 제약 상한 (H, W <=)
+lambda_th: 0.4  # 4단계 최종 임계값 가중치
 # 4단계: 연결요소 bbox가 size_max(H,W) 넘었을 때 처리 방식.
 #   off(기본) = 무처리 / discard = 통째로 버림 / recenter = 최강 픽셀 중심 size_max 크기 박스만 남김
 # 주의: yaml에서 off/on/yes/no는 따옴표 없이 쓰면 불리언으로 해석되니(PyYAML) 반드시 따옴표로 감쌀 것.

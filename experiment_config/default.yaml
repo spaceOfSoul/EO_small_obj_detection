@@ -19,3 +19,7 @@ window: 11      # 2단계 RW 로컬 윈도우 크기(홀수)
 size_min: 1     # 3단계 크기 제약 하한 (H*W >)
 size_max: 9     # 3단계 크기 제약 상한 (H, W <=)
 lambda_th: 0.5  # 4단계 최종 임계값 가중치
+# 4단계: 연결요소 bbox가 size_max(H,W) 넘었을 때 처리 방식.
+#   off(기본) = 무처리 / discard = 통째로 버림 / recenter = 최강 픽셀 중심 size_max 크기 박스만 남김
+# 주의: yaml에서 off/on/yes/no는 따옴표 없이 쓰면 불리언으로 해석되니(PyYAML) 반드시 따옴표로 감쌀 것.
+oversized_bbox_mode: "off"

@@ -4,7 +4,7 @@
 #   예: python detect_testbed.py --config experiment_config/default.yaml --k-th 6.0
 
 # 필수: neg_array(.npy) 폴더 경로
-dataset_dir: dataset_EO/dataset_classified/data_260806_132457/np_array
+dataset_dir: dataset_EO/dataset_classified/data_260806_151917/np_array
 
 # 결과 저장 경로. 생략하면 experiment_result/Experiment_YYMMDD_HH_MM_SS 로 자동 생성.
 # output_dir: experiment_result/my_run
