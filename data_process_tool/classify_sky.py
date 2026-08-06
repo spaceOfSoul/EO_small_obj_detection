@@ -1,7 +1,7 @@
 """
-test/original의 jpg 이미지를 Ultralytics YOLO26 semantic segmentation 모델(yolo26n-sem.pt)로
+dataset_EO/original의 jpg 이미지를 Ultralytics YOLO26 semantic segmentation 모델(yolo26n-sem.pt)로
 추론하여 "sky" 클래스 픽셀 비율이 임계값 이상이면 sky, 아니면 others로 분류해
-test/dataset_classified/{sky,others}로 복사한다.
+dataset_EO/dataset_classified/{sky,others}로 복사한다.
 
 주의: yolo26n-sem.pt는 Cityscapes(19-class) 사전학습 가중치로, ADE20K 전용 사전학습
 가중치는 Ultralytics 공식 배포본에 없다(ade20k.yaml은 학습용 데이터셋 설정만 제공).
@@ -14,6 +14,7 @@ from pathlib import Path
 from ultralytics import YOLO
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+DATA_DIR = SCRIPT_DIR.parent / "dataset_EO"
 SKY_CLASS_NAME = "sky"
 
 
@@ -49,8 +50,8 @@ def classify_sky(input_dir: Path, output_dir: Path, model_name: str, threshold: 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="semantic segmentation의 sky 픽셀 비율로 하늘 사진을 분류")
-    parser.add_argument("--input-dir", type=Path, default=SCRIPT_DIR / "original")
-    parser.add_argument("--output-dir", type=Path, default=SCRIPT_DIR / "dataset_classified")
+    parser.add_argument("--input-dir", type=Path, default=DATA_DIR / "original")
+    parser.add_argument("--output-dir", type=Path, default=DATA_DIR / "dataset_classified")
     parser.add_argument("--model", type=str, default="yolo26n-sem.pt")
     parser.add_argument("--threshold", type=float, default=0.3, help="sky로 분류할 최소 sky 픽셀 비율(0~1)")
     args = parser.parse_args()

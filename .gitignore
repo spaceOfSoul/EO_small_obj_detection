@@ -50,3 +50,4 @@ test/gray_image/
 test/original/
 *.zip
 experiment_result
+dataset_*

@@ -1,7 +1,7 @@
 """
-test/original 폴더의 jpg 이미지를 grayscale로 변환하여
-- test/gray_image : grayscale 이미지 파일(.png)
-- test/gray_array : grayscale numpy 배열(.npy)
+dataset_EO/original 폴더의 jpg 이미지를 grayscale로 변환하여
+- dataset_EO/gray_image : grayscale 이미지 파일(.png)
+- dataset_EO/gray_array : grayscale numpy 배열(.npy)
 두 폴더에 각각 저장한다.
 """
 import argparse
@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+DATA_DIR = SCRIPT_DIR.parent / "dataset_EO"
 
 
 def convert_to_grayscale(input_dir: Path, image_out_dir: Path, array_out_dir: Path) -> None:
@@ -35,9 +36,9 @@ def convert_to_grayscale(input_dir: Path, image_out_dir: Path, array_out_dir: Pa
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="jpg 이미지를 grayscale로 변환하여 이미지 파일과 numpy 배열로 각각 저장")
-    parser.add_argument("--input-dir", type=Path, default=SCRIPT_DIR / "original")
-    parser.add_argument("--image-out-dir", type=Path, default=SCRIPT_DIR / "gray_image")
-    parser.add_argument("--array-out-dir", type=Path, default=SCRIPT_DIR / "gray_array")
+    parser.add_argument("--input-dir", type=Path, default=DATA_DIR / "original")
+    parser.add_argument("--image-out-dir", type=Path, default=DATA_DIR / "gray_image")
+    parser.add_argument("--array-out-dir", type=Path, default=DATA_DIR / "gray_array")
     args = parser.parse_args()
 
     convert_to_grayscale(args.input_dir, args.image_out_dir, args.array_out_dir)

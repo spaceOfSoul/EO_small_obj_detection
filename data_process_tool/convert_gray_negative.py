@@ -1,5 +1,5 @@
 """
-test/dataset_classified/sky 폴더의 jpg 이미지에 대해
+dataset_EO/dataset_classified/sky 폴더의 jpg 이미지에 대해
 - gray_image : grayscale 이미지 파일(.png)
 - neg_image  : grayscale에 negative 필터(반전)를 적용한 이미지 파일(.png)
 - neg_array  : negative 필터가 적용된 numpy 배열(.npy)
@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image, ImageOps
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+DATA_DIR = SCRIPT_DIR.parent / "dataset_EO"
 
 
 def convert_gray_negative(
@@ -42,10 +43,10 @@ def convert_gray_negative(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="jpg 이미지를 grayscale/negative로 변환해 이미지·numpy 배열로 저장")
-    parser.add_argument("--input-dir", type=Path, default=SCRIPT_DIR / "dataset_classified" / "sky")
-    parser.add_argument("--gray-image-out-dir", type=Path, default=SCRIPT_DIR / "dataset_classified" / "gray_image")
-    parser.add_argument("--neg-image-out-dir", type=Path, default=SCRIPT_DIR / "dataset_classified" / "neg_image")
-    parser.add_argument("--neg-array-out-dir", type=Path, default=SCRIPT_DIR / "dataset_classified" / "neg_array")
+    parser.add_argument("--input-dir", type=Path, default=DATA_DIR / "dataset_classified" / "sky")
+    parser.add_argument("--gray-image-out-dir", type=Path, default=DATA_DIR / "dataset_classified" / "gray_image")
+    parser.add_argument("--neg-image-out-dir", type=Path, default=DATA_DIR / "dataset_classified" / "neg_image")
+    parser.add_argument("--neg-array-out-dir", type=Path, default=DATA_DIR / "dataset_classified" / "neg_array")
     args = parser.parse_args()
 
     convert_gray_negative(args.input_dir, args.gray_image_out_dir, args.neg_image_out_dir, args.neg_array_out_dir)
