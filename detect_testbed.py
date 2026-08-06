@@ -1,8 +1,11 @@
 """
 알고리즘 시험/튜닝용 테스트베드.
 
-test/dataset_classified/neg_array의 .npy(negative filter 적용된 grayscale numpy 배열)를
-로드 -> PLLCM detect 알고리즘 실행 -> YOLO 포맷(txt) 결과 저장까지의 파이프라인.
+dataset_EO/dataset_classified/neg_array 같은 .npy(negative filter 적용된 grayscale numpy 배열)
+폴더를 로드 -> PLLCM detect 알고리즘 실행 -> YOLO 포맷(txt) 결과 저장까지의 파이프라인.
+
+파라미터를 매번 CLI로 입력하기 번거로우면 --config로 yaml 설정 파일을 지정할 수 있다
+(예시는 experiment_config/ 참고). 값 우선순위는 CLI 인자 > config 파일 > 코드 기본값.
 
 - detect 알고리즘 본체는 pllcm 패키지(PLLCM_method_summary.pdf 기반 구현)에 있다.
   더미 파이프라인 검증용으로 돌아가려면 `from dummy_detector import detect`로 되돌리면 된다.
@@ -26,14 +29,27 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import yaml
 
 from pllcm import PLLCMParams, detect
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-
-# 데이터셋/실험결과 경로 - 커맨드라인 인자(--dataset-dir, --output-dir)로 덮어쓸 수 있다.
-DATASET_DIR = SCRIPT_DIR / "test" / "dataset_classified" / "neg_array"
 EXPERIMENT_ROOT_DIR = SCRIPT_DIR / "experiment_result"
+
+
+def load_config(path: Path) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f) or {}
+    return config
+
+
+def resolve(cli_value, config: dict, key: str, default=None):
+    """값 우선순위: CLI 인자(명시적으로 넘긴 경우) > config 파일 > default."""
+    if cli_value is not None:
+        return cli_value
+    if key in config:
+        return config[key]
+    return default
 
 
 def load_neg_array(path: Path, scale: float = 1.0) -> np.ndarray:
@@ -127,39 +143,64 @@ def run(dataset_dir: Path, output_dir: Path, params: PLLCMParams, scale: float =
 
 if __name__ == "__main__":
     default_params = PLLCMParams()
-    default_output_dir = EXPERIMENT_ROOT_DIR / f"Experiment_{datetime.now():%y%m%d_%H_%M_%S}"
 
     parser = argparse.ArgumentParser(description="neg_array 데이터셋에 PLLCM detect 알고리즘을 실행하는 테스트베드")
-    parser.add_argument("--dataset-dir", type=Path, default=DATASET_DIR, help="neg_array(.npy) 폴더 경로")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="파라미터를 담은 yaml 설정 파일 경로 (예시: experiment_config/). "
+        "값 우선순위는 CLI 인자 > config 파일 > 코드 기본값.",
+    )
+    parser.add_argument(
+        "--dataset-dir",
+        type=Path,
+        default=None,
+        help="neg_array(.npy) 폴더 경로. --config의 dataset_dir로도 지정 가능하며, "
+        "둘 다 없으면 에러로 종료된다 (더 이상 기본 경로를 쓰지 않음).",
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=default_output_dir,
+        default=None,
         help="YOLO 포맷 결과(txt) 저장 경로 (기본: experiment_result/Experiment_YYMMDD_HH_MM_SS)",
     )
     parser.add_argument(
         "--scale",
         type=float,
-        default=1.0,
-        help="이미지 다운스케일 배율(1.0=원본). PLLCM은 저해상도(scidb_dataset 기준 256x256) 기준 "
+        default=None,
+        help="이미지 다운스케일 배율(1.0=원본, 기본값). PLLCM은 저해상도(scidb_dataset 기준 256x256) 기준 "
         "2x1~9x9px 소형 표적 가정으로 튜닝돼 있어, 고해상도 원본에서 표적이 그보다 훨씬 크게 찍히면 "
         "1보다 작은 값으로 낮춰 표적을 다시 그 크기 범위로 되돌리는 용도. 예: 0.1",
     )
-    parser.add_argument("--k-th", type=float, default=default_params.k_th, help="1단계 후보 추출 임계값 계수")
-    parser.add_argument("--beta", type=float, default=default_params.beta, help="2단계 RW 엣지 가중치 상수")
-    parser.add_argument("--window", type=int, default=default_params.window, help="2단계 RW 로컬 윈도우 크기(홀수)")
-    parser.add_argument("--size-min", type=int, default=default_params.size_min, help="3단계 크기 제약 하한(H*W >)")
-    parser.add_argument("--size-max", type=int, default=default_params.size_max, help="3단계 크기 제약 상한(H,W <=)")
-    parser.add_argument("--lambda-th", type=float, default=default_params.lambda_th, help="4단계 최종 임계값 가중치")
+    parser.add_argument("--k-th", type=float, default=None, help="1단계 후보 추출 임계값 계수")
+    parser.add_argument("--beta", type=float, default=None, help="2단계 RW 엣지 가중치 상수")
+    parser.add_argument("--window", type=int, default=None, help="2단계 RW 로컬 윈도우 크기(홀수)")
+    parser.add_argument("--size-min", type=int, default=None, help="3단계 크기 제약 하한(H*W >)")
+    parser.add_argument("--size-max", type=int, default=None, help="3단계 크기 제약 상한(H,W <=)")
+    parser.add_argument("--lambda-th", type=float, default=None, help="4단계 최종 임계값 가중치")
     args = parser.parse_args()
 
-    cli_params = PLLCMParams(
-        k_th=args.k_th,
-        window=args.window,
-        beta=args.beta,
-        size_min=args.size_min,
-        size_max=args.size_max,
-        lambda_th=args.lambda_th,
+    config = load_config(args.config) if args.config else {}
+
+    dataset_dir = resolve(args.dataset_dir, config, "dataset_dir")
+    if dataset_dir is None:
+        parser.error("데이터셋 경로가 없습니다. --dataset-dir을 넘기거나 --config의 yaml에 dataset_dir을 지정하세요.")
+    dataset_dir = Path(dataset_dir)
+
+    output_dir = resolve(args.output_dir, config, "output_dir")
+    output_dir = (
+        Path(output_dir) if output_dir is not None else EXPERIMENT_ROOT_DIR / f"Experiment_{datetime.now():%y%m%d_%H_%M_%S}"
     )
 
-    run(args.dataset_dir, args.output_dir, cli_params, args.scale)
+    scale = resolve(args.scale, config, "scale", 1.0)
+    cli_params = PLLCMParams(
+        k_th=resolve(args.k_th, config, "k_th", default_params.k_th),
+        window=resolve(args.window, config, "window", default_params.window),
+        beta=resolve(args.beta, config, "beta", default_params.beta),
+        size_min=resolve(args.size_min, config, "size_min", default_params.size_min),
+        size_max=resolve(args.size_max, config, "size_max", default_params.size_max),
+        lambda_th=resolve(args.lambda_th, config, "lambda_th", default_params.lambda_th),
+    )
+
+    run(dataset_dir, output_dir, cli_params, scale)

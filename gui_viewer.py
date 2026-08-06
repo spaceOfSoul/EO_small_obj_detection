@@ -12,7 +12,13 @@ from pathlib import Path
 
 from PIL import ImageTk
 
-from visualize_results import EXPERIMENT_ROOT_DIR, IMAGE_DIR, find_latest_experiment_dir, parse_yolo_txt, render_detections
+from visualize_results import (
+    EXPERIMENT_ROOT_DIR,
+    find_latest_experiment_dir,
+    parse_yolo_txt,
+    render_detections,
+    resolve_image_dir,
+)
 
 MAX_DISPLAY_SIZE = (1240, 820)
 
@@ -29,7 +35,7 @@ class Viewer(tk.Tk):
         self.index = 0
         self._photo = None  # PhotoImage 참조 유지(안 하면 GC로 이미지가 사라짐)
 
-        self.image_label = tk.Label(self, bg="black")
+        self.image_label = tk.Label(self, bg="black", fg="white")
         self.image_label.pack(fill=tk.BOTH, expand=True)
 
         self.status_var = tk.StringVar()
@@ -81,10 +87,22 @@ if __name__ == "__main__":
         help="결과 txt가 있는 experiment_result/Experiment_* 폴더 (생략 시 가장 최근 실험 사용)",
     )
     parser.add_argument("--experiment-dir", dest="experiment_dir_opt", type=Path, default=None, help="위와 동일 (플래그 형태)")
-    parser.add_argument("--image-dir", type=Path, default=IMAGE_DIR, help="박스를 그릴 원본 이미지 폴더")
+    parser.add_argument(
+        "--image-dir",
+        type=Path,
+        default=None,
+        help="박스를 그릴 원본 이미지 폴더 (생략 시 실험 폴더의 params.json에 기록된 dataset_dir로부터 자동 추정)",
+    )
     args = parser.parse_args()
 
     target_dir = args.experiment_dir_opt or args.experiment_dir or find_latest_experiment_dir(EXPERIMENT_ROOT_DIR)
     print(f"실험 폴더: {target_dir}")
 
-    Viewer(target_dir, args.image_dir).mainloop()
+    image_dir = args.image_dir or resolve_image_dir(target_dir)
+    if image_dir is None:
+        parser.error(
+            f"'{target_dir}'의 params.json에서 이미지 폴더를 추정하지 못했습니다. --image-dir로 직접 지정하세요."
+        )
+    print(f"이미지 폴더: {image_dir}")
+
+    Viewer(target_dir, image_dir).mainloop()

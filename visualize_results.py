@@ -6,6 +6,7 @@ detect_testbed.py가 experiment_result/Experiment_YYMMDD_HH_MM_SS/에 남긴 YOL
 <experiment_dir>/vis/ 에 저장한다.
 """
 import argparse
+import json
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -13,7 +14,6 @@ from PIL import Image, ImageDraw, ImageFont
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 EXPERIMENT_ROOT_DIR = SCRIPT_DIR / "experiment_result"
-IMAGE_DIR = SCRIPT_DIR / "test" / "dataset_classified" / "neg_image"
 
 BOX_COLOR = (255, 0, 0)
 BOX_WIDTH = 3
@@ -31,6 +31,53 @@ def find_latest_experiment_dir(root: Path) -> Path:
     if not candidates:
         raise FileNotFoundError(f"'{root}'에 실험 결과 폴더가 없습니다.")
     return max(candidates, key=lambda p: p.stat().st_mtime)
+
+
+def _dataset_dir_from_params(experiment_dir: Path) -> Path | None:
+    """실험 폴더의 params.json에 detect_testbed.py가 남긴 dataset_dir(.npy 폴더)을 읽는다."""
+    params_path = experiment_dir / "params.json"
+    if not params_path.exists():
+        return None
+    try:
+        raw = json.loads(params_path.read_text(encoding="utf-8")).get("dataset_dir")
+    except (OSError, ValueError):
+        return None
+    if not raw:
+        return None
+    dataset_dir = Path(raw)
+    if not dataset_dir.is_absolute():
+        dataset_dir = SCRIPT_DIR / dataset_dir
+    return dataset_dir
+
+
+def infer_image_dir(dataset_dir: Path) -> Path | None:
+    """dataset_dir(.npy 폴더)과 같은 부모 아래에서 파일명이 대응되는 이미지 폴더를 찾는다.
+
+    데이터셋마다 이미지 폴더명 규칙이 달라(neg_array/neg_image, np_array/image 등) 고정 경로를
+    쓸 수 없어, npy 파일명과 겹치는 png가 가장 많은 형제 폴더를 찾는 방식으로 추정한다.
+    """
+    if not dataset_dir.exists():
+        return None
+    npy_stems = {p.stem for p in dataset_dir.glob("*.npy")}
+    if not npy_stems:
+        return None
+
+    best_dir, best_score = None, 0
+    for candidate in dataset_dir.parent.iterdir():
+        if not candidate.is_dir() or candidate == dataset_dir:
+            continue
+        score = len(npy_stems & {p.stem for p in candidate.glob("*.png")})
+        if score > best_score:
+            best_dir, best_score = candidate, score
+    return best_dir
+
+
+def resolve_image_dir(experiment_dir: Path) -> Path | None:
+    """실험 폴더의 params.json으로부터 대응 이미지 폴더를 추정한다. 실패 시 None."""
+    dataset_dir = _dataset_dir_from_params(experiment_dir)
+    if dataset_dir is None:
+        return None
+    return infer_image_dir(dataset_dir)
 
 
 def parse_yolo_txt(txt_path: Path) -> list[tuple[int, float, float, float, float, float]]:
@@ -105,12 +152,24 @@ if __name__ == "__main__":
         help="결과 txt가 있는 experiment_result/Experiment_* 폴더 (생략 시 가장 최근 실험 사용)",
     )
     parser.add_argument("--experiment-dir", dest="experiment_dir_opt", type=Path, default=None, help="위와 동일 (플래그 형태)")
-    parser.add_argument("--image-dir", type=Path, default=IMAGE_DIR, help="박스를 그릴 원본 이미지 폴더")
+    parser.add_argument(
+        "--image-dir",
+        type=Path,
+        default=None,
+        help="박스를 그릴 원본 이미지 폴더 (생략 시 실험 폴더의 params.json에 기록된 dataset_dir로부터 자동 추정)",
+    )
     parser.add_argument("--output-dir", type=Path, default=None, help="시각화 결과 저장 폴더 (기본: <experiment_dir>/vis)")
     args = parser.parse_args()
 
     experiment_dir = args.experiment_dir_opt or args.experiment_dir or find_latest_experiment_dir(EXPERIMENT_ROOT_DIR)
     output_dir = args.output_dir or (experiment_dir / "vis")
 
+    image_dir = args.image_dir or resolve_image_dir(experiment_dir)
+    if image_dir is None:
+        parser.error(
+            f"'{experiment_dir}'의 params.json에서 이미지 폴더를 추정하지 못했습니다. --image-dir로 직접 지정하세요."
+        )
+
     print(f"실험 폴더: {experiment_dir}")
-    run(experiment_dir, args.image_dir, output_dir)
+    print(f"이미지 폴더: {image_dir}")
+    run(experiment_dir, image_dir, output_dir)

@@ -1,0 +1,21 @@
+# detect_testbed.py --config experiment_config/default.yaml 로 사용.
+# 값 우선순위: CLI 인자 > 이 파일 > 코드 기본값.
+# 즉, 여기 값을 기본으로 쓰되 특정 값만 바꾸고 싶으면 CLI에서 그 옵션만 추가로 넘기면 된다.
+#   예: python detect_testbed.py --config experiment_config/default.yaml --k-th 6.0
+
+# 필수: neg_array(.npy) 폴더 경로
+dataset_dir: 데이터 경로
+
+# 결과 저장 경로. 생략하면 experiment_result/Experiment_YYMMDD_HH_MM_SS 로 자동 생성.
+# output_dir: experiment_result/my_run
+
+# 이미지 다운스케일 배율 (1.0 = 원본 그대로)
+scale: 1.0
+
+# PLLCM 파라미터 (pllcm/params.py의 PLLCMParams 기본값과 동일)
+k_th: 5.2       # 1단계 후보 추출 임계값 계수
+beta: 15.0      # 2단계 RW 엣지 가중치 상수
+window: 11      # 2단계 RW 로컬 윈도우 크기(홀수)
+size_min: 1     # 3단계 크기 제약 하한 (H*W >)
+size_max: 9     # 3단계 크기 제약 상한 (H, W <=)
+lambda_th: 0.5  # 4단계 최종 임계값 가중치
