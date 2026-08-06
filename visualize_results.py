@@ -8,7 +8,7 @@ detect_testbed.py가 experiment_result/Experiment_YYMMDD_HH_MM_SS/에 남긴 YOL
 import argparse
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -18,6 +18,12 @@ IMAGE_DIR = SCRIPT_DIR / "test" / "dataset_classified" / "neg_image"
 BOX_COLOR = (255, 0, 0)
 BOX_WIDTH = 3
 BOX_PAD = 8  # 검출 박스가 몇 픽셀 수준으로 작아 육안으로 보기 쉽게 여유를 둔다
+FONT_SIZE = 40
+
+try:
+    _FONT = ImageFont.truetype("arial.ttf", FONT_SIZE)
+except OSError:
+    _FONT = ImageFont.load_default(size=FONT_SIZE)
 
 
 def find_latest_experiment_dir(root: Path) -> Path:
@@ -52,7 +58,7 @@ def render_detections(image_path: Path, detections: list) -> Image.Image:
         x2 = (xc + w / 2) * img_w + BOX_PAD
         y2 = (yc + h / 2) * img_h + BOX_PAD
         draw.rectangle([x1, y1, x2, y2], outline=BOX_COLOR, width=BOX_WIDTH)
-        draw.text((x2 + 2, y1), f"{conf:.2f}", fill=BOX_COLOR)
+        draw.text((x2 + 2, y1), f"{conf:.2f}", fill=BOX_COLOR, font=_FONT)
 
     return img
 
@@ -98,11 +104,12 @@ if __name__ == "__main__":
         default=None,
         help="결과 txt가 있는 experiment_result/Experiment_* 폴더 (생략 시 가장 최근 실험 사용)",
     )
+    parser.add_argument("--experiment-dir", dest="experiment_dir_opt", type=Path, default=None, help="위와 동일 (플래그 형태)")
     parser.add_argument("--image-dir", type=Path, default=IMAGE_DIR, help="박스를 그릴 원본 이미지 폴더")
     parser.add_argument("--output-dir", type=Path, default=None, help="시각화 결과 저장 폴더 (기본: <experiment_dir>/vis)")
     args = parser.parse_args()
 
-    experiment_dir = args.experiment_dir or find_latest_experiment_dir(EXPERIMENT_ROOT_DIR)
+    experiment_dir = args.experiment_dir_opt or args.experiment_dir or find_latest_experiment_dir(EXPERIMENT_ROOT_DIR)
     output_dir = args.output_dir or (experiment_dir / "vis")
 
     print(f"실험 폴더: {experiment_dir}")
